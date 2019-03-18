@@ -19,6 +19,7 @@ const main = function() {
   }
 
   const words = loadFileIntoList(file);
+
   const term = words[8888];
   const trie = new Trie(words);
   console.log(`total trie build time ${trie.endTime - trie.startTime}`);
