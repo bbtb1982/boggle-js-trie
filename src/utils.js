@@ -6,11 +6,6 @@ function loadFileIntoList(fPath) {
   return list;
 };
 
-function printUsageToStdOut() {
-    console.log(`useage: \n\tfile <path> path to word list\n\tboggle board <string> 16 char string`);
-}
-
 export {
-  printUsageToStdOut,
   loadFileIntoList,
 };

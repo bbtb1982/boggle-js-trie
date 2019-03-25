@@ -1,14 +1,13 @@
 'use strict';
 
+var chalk = require('chalk');
+
 const { readFileSync } = require('fs');
 
 function loadFileIntoList(fPath) {
   const file = readFileSync(fPath, 'utf8');
   const list = file.split('\r\n');
   return list;
-}
-function printUsageToStdOut() {
-    console.log(`useage: \n\tfile <path> path to word list\n\tboggle board <string> 16 char string`);
 }
 
 class TrieNode {
@@ -88,30 +87,224 @@ class Trie {
   }
 }
 
+class Vector2 {
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+
+  add(Vector2) {
+    return
+  }
+
+  static add(a, b) {
+    return new Vector2( a.x + b.x, a.y + b.y );
+  }
+
+
+}
+
+class BoardNode {
+  constructor(letters, pos) {
+    this._id = pos;
+    this._isVisited = false;
+    this._char = letters[pos];
+    this._point;
+    this._matrix;
+
+    this._nVector = new Vector2(0, -1);
+    this._neVector = new Vector2(1,1);
+    this._eVector = new Vector2(1, 0);
+    this._seVector = new Vector2(1, -1);
+    this._sVector = new Vector2(0, -1);
+    this._swVector = new Vector2(-1, -1);
+    this._wVector = new Vector2(-1, 0);
+    this._nwVector = new Vector2(-1, 1);
+  }
+
+  get matrix() { return this._matrix; }
+  set matrix(val) { this._matrix = val; }
+
+  get id() { return this._id; }
+  set id(id) { this._id = id; }
+
+  get char() { return this._char; }
+  set char(val) { this._char = val; }
+
+  get isVisited() { return this._isVisied; }
+  set isVisited(val) { this._isVisited = val; }
+
+  get point() { return this._point; }
+  set point(val) { this._point = val; }
+
+  get n() {
+    const pV = Vector2.add(this.point, this._nVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get ne() {
+    const pV = Vector2.add(this.point, this._neVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get e() {
+    const pV = Vector2.add(this.point, this._eVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get se() {
+    const pV = Vector2.add(this.point, this._seVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get s() {
+    const pV = Vector2.add(this.point, this._sVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get sw() {
+    const pV = Vector2.add(this.point, this._swVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get w() {
+    const pV = Vector2.add(this.point, this._wVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  get nw() {
+    const pV = Vector2.add(this.point, this._nwVector);
+    const matrix = this.matrix;
+    return matrix[pV.y] && matrix[pV.y][pV.x]
+    ? matrix[pV.y][pV.x]
+    : undefined;
+  }
+
+  printNode(opts = {}) {
+    const { highlight_visited } = opts;
+    return highlight_visited && this.is_visited
+    ? chalk.red(this.char)
+    : this.char;
+  }
+
+  toString() {
+    let str = `${this.char}:: `;
+    str = `${str}  n:${this.n ? this.n.char : '_'}`;
+    str = `${str}  ne:${this.ne ? this.ne.char : '_'}`;
+    str = `${str}  e:${this.e ? this.e.char : '_'}`;
+    str = `${str}  se:${this.se ? this.se.char : '_'}`;
+    str = `${str}  s:${this.s ? this.s.char : '_'}`;
+    str = `${str}  sw:${this.sw ? this.sw.char : '_'}`;
+    str = `${str}  w:${this.w ? this.w.char : '_'}`;
+    str = `${str}  nw:${this.nw ? this.nw.char : '_'}`;
+    return str;
+  }
+}
+
+class Board {
+  constructor(letters = '') {
+    this.matrix = [];
+    this.nodes = this.createNodes(letters);
+    this.matrix = this.createMatrix(this.nodes);
+    this.createGraph(this.matrix);
+  }
+
+  createNodes(letters) {
+    const nodes = [];
+    for (let i=0; i<letters.length; i++) {
+      const n = new BoardNode(letters, i);
+      n.matrix = this.matrix;
+      nodes.push(n);
+    }
+    return nodes;
+  }
+
+  createMatrix(nodes, chunkSize = 4) {
+    const matrix = [];
+    for (let i=0; i<nodes.length; i=i+chunkSize) {
+      matrix.push(nodes.slice(i, i+chunkSize));
+    }
+    return matrix;
+  }
+
+  createGraph(matrix) {
+    for (let i=0; i<matrix.length; i++) {
+      for (let j=0; j<matrix[i].length; j++) {
+        const node = matrix[i][j];
+        node.point = new Vector2(j, i);
+        node.matrix = matrix;
+      }
+    }
+  }
+
+  toString(_opts = {}) {
+    let defaults = {
+      highlight_visited: true,
+    };
+    const opts = {...defaults, ..._opts};
+    let str = '';
+    for (let i=0; i<this.matrix.length; i++) {
+      const row = this.matrix[i];
+      for (let j=0; j<row.length; j++) {
+        str = str + row[j].printNode(opts);
+      }
+      str = str + '\n';
+    }
+
+    return str;
+  }
+}
+
 const { argv } = require('process');
 
 const main = function() {
   const file = argv[2];
-  const string = argv[3];
+  const letters = argv[3];
 
   if (process.argv.length < 4) {
-    printUsageToStdOut();
+    console.log(`useage: \n\tfile <path> path to word list\n\tletters <string> 16 char string`);
     process.exitCode = 1;
     return;
-  } else if (typeof string != 'string') {
-    throw new TypeError(`the boggle board argument must be a "string" with a lenght of 16`);
+  } else if (typeof letters != 'string') {
+    throw new TypeError(`letters argument must be a "string" with a lenght of 16`);
 
-  } else if (string.length != 16) {
-    throw new Error(`boggle board string length must equal 16`);
+  } else if (letters.length != 16) {
+    throw new Error(`boggle letters length must equal 16`);
   }
 
   const words = loadFileIntoList(file);
 
   const term = words[8888];
   const trie = new Trie(words);
-  console.log(`total trie build time ${trie.endTime - trie.startTime}`);
-  console.log(`is ${term} a known word? ${trie.search(term)}`);
-  console.log(trie);
+  const board = new Board(letters);
+
+  console.log(board.toString());
+  board.nodes.forEach(n => console.log(n.toString()));
+  //console.log('board', board);
+  //console.log(`total trie build time ${trie.endTime - trie.startTime}`);
+  //console.log(`is ${term} a known word? ${trie.search(term)}`);
+  //console.log(trie);
 };
 
 main();
