@@ -1,5 +1,6 @@
 import BoardNode from './node.js';
 import Vector2 from '../data/vector2.js';
+import Path from '../data/path.js';
 
 export default class Board {
   constructor(letters = '') {
@@ -35,6 +36,15 @@ export default class Board {
         node.matrix = matrix;
       }
     }
+  }
+
+  walk(trie) {
+    const results = [];
+    for (let i=0; i<this.nodes.length; i++) {
+      const n = this.nodes[i];
+      const result = n.walk(trie, new Path([n]));
+    }
+    debugger;
   }
 
   toString(_opts = {}) {

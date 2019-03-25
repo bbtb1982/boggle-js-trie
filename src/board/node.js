@@ -1,5 +1,6 @@
-import Vector2 from '../data/vector2.js';
 import * as chalk from 'chalk';
+import Path from '../data/path.js';
+import Vector2 from '../data/vector2.js';
 
 export default class BoardNode {
   constructor(letters, pos) {
@@ -103,6 +104,13 @@ export default class BoardNode {
     return highlight_visited && this.is_visited
     ? chalk.red(this.char)
     : this.char;
+  }
+
+  walk(trie, path) {
+    if (this.n) {
+      return this.n
+        .walk(trie, new Path([...path.path, this.n]));
+    }
   }
 
   toString() {
