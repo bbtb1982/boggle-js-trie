@@ -4,13 +4,13 @@ export default class Vector2 {
     this.y = y;
   }
 
-  add(Vector2) {
-    return
+  add(a) {
+    this.x + a.x;
+    this.y + a.x;
+    return this;
   }
 
   static add(a, b) {
     return new Vector2( a.x + b.x, a.y + b.y );
   }
-
-
 }
