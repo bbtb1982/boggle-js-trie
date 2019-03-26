@@ -9,6 +9,24 @@ function loadFileIntoList(fPath) {
   const list = file.split('\r\n');
   return list;
 }
+function pathToString(path) {
+    let str = '';
+    for (let i=0; i<path.length; i++) {
+      const n = path[i];
+      str = `${str}${n ? n.char : ''}`;
+    }
+    return str;
+}
+
+function generateRandomString(string_length){
+    let random_string = '';
+    let random_ascii;
+    for(let i = 0; i < string_length; i++) {
+        random_ascii = Math.floor((Math.random() * 25) + 97);
+        random_string += String.fromCharCode(random_ascii);
+    }
+    return random_string
+}
 
 class TrieNode {
   constructor() {
@@ -49,11 +67,23 @@ class TrieNode {
       if (rest.length) {
         return child.search(rest);
       } else {
-        debugger;
         return child.isEndOfWord;
       }
     } else {
       return false;
+    }
+  }
+
+  isLeaf(str) {
+    const char = str.slice(0,1);
+    const rest = str.slice(1);
+    const child = this.children[char];
+    if (child) {
+      return rest.length
+      ? child.isLeaf(rest)
+      : !Object.keys(child.children).length;
+    } else {
+      return true;
     }
   }
 }
@@ -85,24 +115,11 @@ class Trie {
     const root = this.root;
     return root.search(word);
   }
-}
 
-class Path {
-  constructor(path = []) {
-    debugger;
-    this.path = [];
-    this.path = [...path];
+  isLeaf(word) {
+    const root = this.root;
+    return root.isLeaf(word);
   }
-
-  toString() {
-    for (let i=0; i<this.path.length; i++) {
-      const n = this.path[i];
-      let str = '';
-      str = `${str}${str.char}`;
-    }
-    return str;
-  }
-
 }
 
 class Vector2 {
@@ -125,10 +142,13 @@ class Vector2 {
 class BoardNode {
   constructor(letters, pos) {
     this._id = pos;
-    this._isVisited = false;
+    this._visited = false;
     this._char = letters[pos];
+    this._vertices = [];
     this._point;
     this._matrix;
+
+    this.vertices = [];
 
     this._nVector = new Vector2(0, -1);
     this._neVector = new Vector2(1,1);
@@ -149,8 +169,8 @@ class BoardNode {
   get char() { return this._char; }
   set char(val) { this._char = val; }
 
-  get isVisited() { return this._isVisied; }
-  set isVisited(val) { this._isVisited = val; }
+  get visited() { return this._visited; }
+  set visited(val) { this._visited = Boolean(val); }
 
   get point() { return this._point; }
   set point(val) { this._point = val; }
@@ -226,11 +246,30 @@ class BoardNode {
     : this.char;
   }
 
-  walk(trie, path) {
-    if (this.n) {
-      return this.n
-        .walk(trie, new Path([...path.path, this.n]));
+  walk(trie, results, visited, path) {
+    if (visited.find(v => v.id === this.id)) { return; }
+    visited = [...visited, this];
+    path = [...path, this];
+    const word = pathToString(path);
+    if (trie.search(word)) {
+      results.push(word);
     }
+    if (trie.isLeaf(word)) { return; }
+
+    const vertices = this.vertices;
+    for (let i=0; i<vertices.length; i++) {
+      const node = vertices[i];
+      node.walk(trie, results, visited, path);
+    }
+  }
+
+  pathToString(path = []) {
+    let str = '';
+    for (let i=0; i<path.length; i++) {
+      const n = path[i];
+      str = `${str}${n ? n.char : ''}`;
+    }
+    return str;
   }
 
   toString() {
@@ -248,10 +287,10 @@ class BoardNode {
 }
 
 class Board {
-  constructor(letters = '') {
+  constructor(letters = '', matrixSize = 4) {
     this.matrix = [];
     this.nodes = this.createNodes(letters);
-    this.matrix = this.createMatrix(this.nodes);
+    this.matrix = this.createMatrix(this.nodes , matrixSize);
     this.createGraph(this.matrix);
   }
 
@@ -274,21 +313,30 @@ class Board {
   }
 
   createGraph(matrix) {
+    const adj = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
     for (let i=0; i<matrix.length; i++) {
       for (let j=0; j<matrix[i].length; j++) {
         const node = matrix[i][j];
         node.point = new Vector2(j, i);
         node.matrix = matrix;
+        for (let k=0; k<adj.length; k++) {
+          const vertex = node[adj[k]];
+          if (vertex) { node.vertices.push(vertex); }
+        }
       }
     }
   }
 
   walk(trie) {
+    const results = [];
     for (let i=0; i<this.nodes.length; i++) {
       const n = this.nodes[i];
-      const result = n.walk(trie, new Path([n]));
+      console.log(n.char);
+      const visited = [];
+      const path = [];
+      n.walk(trie, results, visited, path);
     }
-    debugger;
+    return results;
   }
 
   toString(_opts = {}) {
@@ -300,9 +348,9 @@ class Board {
     for (let i=0; i<this.matrix.length; i++) {
       const row = this.matrix[i];
       for (let j=0; j<row.length; j++) {
-        str = str + row[j].printNode(opts);
+        str = `${str} ${row[j].printNode(opts)}`;
       }
-      str = str + '\n';
+      str = `${str} \n`;
     }
 
     return str;
@@ -312,29 +360,63 @@ class Board {
 const { argv } = require('process');
 
 const main = function() {
-  const file = argv[2];
-  const letters = argv[3];
+  const start = Date.now();
 
- if (process.argv.length < 4) {
-    console.log(`useage: \n\tfile <path> path to word list\n\tletters <string> 16 char string`);
+  if (
+    argv[2] === '--help' ||
+    argv[2] === '-h'
+  ) {
+    console.log(
+`useage:
+    file <string> path to word list
+    matrixSize  [number 4]  row and column length.
+      e.g. 4  is a 4x4. the cols and row need to match the length of the string.
+    letters [string] if provied needs to be the equal the (matrixSize ^ 2).
+`);
     process.exitCode = 1;
     return;
-  } else if (typeof letters != 'string') {
-    throw new TypeError(`letters argument must be a "string" with a lenght of 16`);
+}
 
-  } else if (letters.length != 16) {
+  const file = argv[2];
+  let matrixSize = parseInt(argv[3]);
+  let letters = argv[4];
+
+  if (matrixSize && isNaN(matrixSize)) {
+    throw new TypeError(` ${matrixSize} matrixSize argument must be a "number", ${matrixSize} is type ${typeof matrixSize}`);
+  } else if (letters && (typeof letters != 'string')) {
+    throw new TypeError(`letters argument must be a "string" with a length of 16`);
+  } else if (letters && (letters.length != (matrixSize * matrixSize))) {
     throw new Error(`boggle letters length must equal 16`);
+  }
+
+  if (!matrixSize) {
+    matrixSize = 4;
+  }
+
+  if (!letters) {
+    const len = Math.pow(matrixSize, 2);
+    letters = generateRandomString(len);
+    console.log(len, letters);
   }
 
   const words = loadFileIntoList(file);
 
   const term = words[8888];
   const trie = new Trie(words);
-  const board = new Board(letters);
+  const board = new Board(letters, matrixSize);
 
   console.log(board.toString());
-  board.nodes.forEach(n => console.log(n.toString()));
-  console.log(board.walk(trie));
+  const end = Date.now();
+  const delta = end - start;
+  const results = board.walk(trie);
+
+  console.log(
+`----
+    time to complete: ${delta / 1000 }
+    words found: ${results.length}
+    words: \n${results.reduce((str, r) => `${str}       ${r}\n`, '')}}
+`);
+
 };
 
 main();

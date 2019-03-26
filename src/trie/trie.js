@@ -27,4 +27,9 @@ export default class Trie {
     const root = this.root;
     return root.search(word);
   }
+
+  isLeaf(word) {
+    const root = this.root;
+    return root.isLeaf(word);
+  }
 }

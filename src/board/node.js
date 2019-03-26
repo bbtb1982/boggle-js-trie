@@ -1,14 +1,17 @@
 import * as chalk from 'chalk';
-import Path from '../data/path.js';
 import Vector2 from '../data/vector2.js';
+import { pathToString } from '../utils.js';
 
 export default class BoardNode {
   constructor(letters, pos) {
     this._id = pos;
-    this._isVisited = false;
+    this._visited = false;
     this._char = letters[pos];
+    this._vertices = [];
     this._point;
     this._matrix;
+
+    this.vertices = [];
 
     this._nVector = new Vector2(0, -1);
     this._neVector = new Vector2(1,1);
@@ -29,8 +32,8 @@ export default class BoardNode {
   get char() { return this._char; }
   set char(val) { this._char = val; }
 
-  get isVisited() { return this._isVisied; }
-  set isVisited(val) { this._isVisited = val; }
+  get visited() { return this._visited; }
+  set visited(val) { this._visited = Boolean(val) }
 
   get point() { return this._point; }
   set point(val) { this._point = val; }
@@ -106,11 +109,30 @@ export default class BoardNode {
     : this.char;
   }
 
-  walk(trie, path) {
-    if (this.n) {
-      return this.n
-        .walk(trie, new Path([...path.path, this.n]));
+  walk(trie, results, visited, path) {
+    if (visited.find(v => v.id === this.id)) { return; }
+    visited = [...visited, this];
+    path = [...path, this];
+    const word = pathToString(path);
+    if (trie.search(word)) {
+      results.push(word);
     }
+    if (trie.isLeaf(word)) { return; }
+
+    const vertices = this.vertices;
+    for (let i=0; i<vertices.length; i++) {
+      const node = vertices[i];
+      node.walk(trie, results, visited, path);
+    }
+  }
+
+  pathToString(path = []) {
+    let str = '';
+    for (let i=0; i<path.length; i++) {
+      const n = path[i];
+      str = `${str}${n ? n.char : ''}`;
+    }
+    return str;
   }
 
   toString() {

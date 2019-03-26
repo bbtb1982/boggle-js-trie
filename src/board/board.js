@@ -1,12 +1,11 @@
 import BoardNode from './node.js';
 import Vector2 from '../data/vector2.js';
-import Path from '../data/path.js';
 
 export default class Board {
-  constructor(letters = '') {
+  constructor(letters = '', matrixSize = 4) {
     this.matrix = [];
     this.nodes = this.createNodes(letters);
-    this.matrix = this.createMatrix(this.nodes);
+    this.matrix = this.createMatrix(this.nodes , matrixSize);
     this.createGraph(this.matrix);
   }
 
@@ -29,11 +28,16 @@ export default class Board {
   }
 
   createGraph(matrix) {
+    const adj = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
     for (let i=0; i<matrix.length; i++) {
       for (let j=0; j<matrix[i].length; j++) {
         const node = matrix[i][j];
         node.point = new Vector2(j, i);
         node.matrix = matrix;
+        for (let k=0; k<adj.length; k++) {
+          const vertex = node[adj[k]];
+          if (vertex) { node.vertices.push(vertex); }
+        }
       }
     }
   }
@@ -42,9 +46,12 @@ export default class Board {
     const results = [];
     for (let i=0; i<this.nodes.length; i++) {
       const n = this.nodes[i];
-      const result = n.walk(trie, new Path([n]));
+      console.log(n.char);
+      const visited = [];
+      const path = [];
+      n.walk(trie, results, visited, path);
     }
-    debugger;
+    return results;
   }
 
   toString(_opts = {}) {
@@ -56,9 +63,9 @@ export default class Board {
     for (let i=0; i<this.matrix.length; i++) {
       const row = this.matrix[i];
       for (let j=0; j<row.length; j++) {
-        str = str + row[j].printNode(opts);
+        str = `${str} ${row[j].printNode(opts)}`;
       }
-      str = str + '\n';
+      str = `${str} \n`;
     }
 
     return str;

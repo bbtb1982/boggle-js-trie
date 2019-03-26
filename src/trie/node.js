@@ -37,11 +37,23 @@ export default class TrieNode {
       if (rest.length) {
         return child.search(rest);
       } else {
-        debugger;
         return child.isEndOfWord;
       }
     } else {
       return false;
+    }
+  }
+
+  isLeaf(str) {
+    const char = str.slice(0,1);
+    const rest = str.slice(1);
+    const child = this.children[char];
+    if (child) {
+      return rest.length
+      ? child.isLeaf(rest)
+      : !Object.keys(child.children).length;
+    } else {
+      return true;
     }
   }
 }
