@@ -408,7 +408,7 @@ const main = function() {
   console.log(board.toString());
   const end = Date.now();
   const delta = end - start;
-  const results = board.walk(trie);
+  const results = [...new Set(board.walk(trie))];
 
   console.log(
 `----
